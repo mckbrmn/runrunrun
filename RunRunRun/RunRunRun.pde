@@ -53,8 +53,6 @@ UserBlock userBlock;
 void draw() {
   new Panel().display();
 
-  new TrackNumber().display();
-
   new Tree().display();
 
     for(int i = 0; i< blocks.length; i++){
@@ -79,7 +77,7 @@ void draw() {
 void checkUserMovement() {
   int[] users = context.getUsers();
   for (int i = 0; i < users.length; i++) {
-    if (context.isTrackingSkeleton(users[i])) {
+    //if (context.isTrackingSkeleton(users[i])) {
       // get head position
       context.getJointPositionSkeleton(users[i], SimpleOpenNI.SKEL_HEAD, jointPos);
       context.convertRealWorldToProjective(jointPos, headPos2D);
@@ -97,7 +95,7 @@ void checkUserMovement() {
         prevHeadPos2D = new PVector();
       }
       prevHeadPos2D.x = headPos2D.x;
-    }
+    //}
   }
 }
 
