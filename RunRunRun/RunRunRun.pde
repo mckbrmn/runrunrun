@@ -11,6 +11,8 @@ int speed = 5;
 int lastSecond = -2;
 Block[] blocks;
 Timer timer = new Timer();
+Integer playerId = null;
+boolean gamePaused = true;
 
 // main program
 void setup() {
@@ -42,7 +44,7 @@ void setup() {
     println("init block "+i+1+" from "+numberOfBlocks);
     blocks[i] =  new Block();
   }
-  userBlock = new UserBlock(75,-100);
+  userBlock = new UserBlock(600,-100);
   println("Speed: "+speed);
   timer.start();
 }
@@ -56,19 +58,30 @@ void draw() {
 
   new Tree().display();
 
-  for(int i = 0; i< blocks.length; i++){
-    blocks[i].display(panelNumber);
+  if (!gamePaused) {
+    for(int i = 0; i< blocks.length; i++){
+      blocks[i].display(panelNumber);
+    }
   }
 
   new Bar(timer).display();
 
   // update the camera
   context.update();
-  checkUserMovement();
-
-  checkCrash();
-
-  checkTime();
+  if (!gamePaused) {
+    checkUserMovement();
+    checkCrash();
+    checkTime();
+  } else {
+    pushStyle();
+    pushMatrix();
+    fill(#000000);
+    textSize(100);
+    text("PAUSE", 400, -400);
+    println(height);
+    popMatrix();
+    popStyle();
+  }
 }
 
 void checkUserMovement() {
@@ -83,15 +96,14 @@ void checkUserMovement() {
       context.convertRealWorldToProjective(jointPos, headPos2D);
 
       // Make block move according to head movement
-      userBlock.display((int) headPos2D.x);
-      println("Head Position: "+jointPos+" converted Head Position: "+headPos2D);
+      userBlock.display((int) jointPos.x);
+      //println("Head Position: "+jointPos+" converted Head Position: "+headPos2D);
     }
   }
 }
 
 void checkTime(){
   if(lastSecond != timer.second()){
-
     if(timer.second() % 10 == 0) {
       speed += 2;
       frameRate(speed);
@@ -115,11 +127,19 @@ boolean checkCrash() {
  for(int i = 0; i<blocks.length; i++){
   if(userBlock.x == blocks[i].x)
     if(userBlock.y == blocks[i].y)
-    print("CRAAAAAAAAAASH");
+      print("CRAAAAAAAAAASH");
   }
   return true;
 }
 
+
+void pauseGame() {
+  gamePaused = true;
+}
+
+void startGame() {
+  gamePaused = false;
+}
 
 // SimpleOpenNI events
 
@@ -127,14 +147,17 @@ void onNewUser(SimpleOpenNI curContext, int userId)
 {
   println("New user detected - userId: " + userId);
   curContext.startTrackingSkeleton(userId);
+  if (gamePaused && playerId == null) {
+    playerId = userId;
+  }
+  startGame();
 }
 
 void onLostUser(SimpleOpenNI curContext, int userId)
 {
   println("Lost user - userId: " + userId);
-}
-
-void onVisibleUser(SimpleOpenNI curContext, int userId)
-{
-  //println("onVisibleUser - userId: " + userId);
+  if (!gamePaused && userId == playerId) {
+    playerId = null;
+    pauseGame();
+  }
 }
