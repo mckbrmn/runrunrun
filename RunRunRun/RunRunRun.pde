@@ -17,8 +17,12 @@ Integer playerId = null;
 PImage crashImage;
 boolean gamePaused = true;
 boolean gameEnd = false;
+boolean adviseMode = false;
+boolean adviseTimerActive = false;
+int firstCrashesCounter = 0;
 PFont f;
 int crashImageCounter = -1;
+Timer adviseTimer;
 
 // main program
 void setup() {
@@ -27,7 +31,7 @@ void setup() {
   frameRate(15);
   colorMode(HSB);
 
-  f = createFont("Arial", 56, true);
+  f = createFont("Arial", 32, true);
 
   lastCrashedBlock = -2;
 
@@ -68,52 +72,89 @@ UserBlock userBlock;
 
 
 void draw() {
-  new Panel().display();
-
-  new Fence().display();
-
-  if (!gamePaused) {
-    for(int i = 0; i< blocks.length; i++){
-      blocks[i].display(panelNumber);
-    }
-  }
-
-  bar.display();
-
   // update the camera
   context.update();
-  if (gameEnd){
+  if (gameEnd) {
     pushStyle();
     pushMatrix();
+    background(0);
     fill(#000000);
-    textSize(100);
-    translate(0, 0, 100);
-    textFont(f, 78);
-    text("Sorry you have lost all your lives.", 200, -400, 0);
     popMatrix();
     popStyle();
+
+    textSize(32);
+    String timeTxt = nf(timer.hour(), 2) + ":" + nf(timer.minute(), 2) + ":" + nf(timer.second(), 2);
+    text("Time: "+timeTxt, 850, -535);
+    text("GAME OVER\nHIGHSCORE: " +timeTxt+"\n \n To restart the Game, \nstretch out your hands.", 300, 200);
+    checkUserRestartPosition();
+  } else if (adviseMode){
+    if (adviseTimerActive) {
+      adviseTimer = new Timer();
+      adviseTimer.start();
+    }
+    adviseTimerActive = false;
+
+    pushStyle();
+    fill(#ffffff);
+    translate(0,0,100);
+
+    rect(400,100, 400,300);
+    fill(0);
+    textSize(20);
+    text("Do not crash into the\nblue blocks \ntry to avoid them! :)\n Game resumes in: "+(5-adviseTimer.second()),450,150);
+    popStyle();
+
+    if (adviseTimer.second() == 5) adviseMode = false;
   } else if (!gamePaused) {
+    checkUserMovement();
+
+    new Panel().display();
+
+    new Fence().display();
+
+
+    for (int i = 0; i< blocks.length; i++) {
+      blocks[i].display(panelNumber);
+    }
+
+
+    bar.display();
 
     checkUserMovement();
 
     if (checkCrash()) {
-      translate(0, 0, 100);
-      image(crashImage, userBlock.x-100, userBlock.y-100, 200, 200);
-      // check if the player lost all their lives
-      if(bar.removeLife()) {
-        endGame();
+      if(firstCrashesCounter < 2){
+        adviseMode = true;
+        adviseTimerActive = true;
+        firstCrashesCounter++;
+      }else{
+        //check if the player lost all his life's
+        if (bar.removeLife()) {
+          endGame();
+        }
       }
     }
+
+    // Creates the crash image, if the block is not an life block or the player crashed 2 times a normal block
+    if (crashImageCounter >= 0 && crashImageCounter < 10) {
+      translate(0, 0, 100);
+      image(crashImage, userBlock.x-100, userBlock.y-100, 200, 200);
+      crashImageCounter++;
+    }
   } else {
+
     pushStyle();
     pushMatrix();
     fill(#ffffff);
-    textFont(f, 56);
+    background(0, 127);
     popMatrix();
     popStyle();
-    text("To start the game stay in front \n and raise your hands. Target is to avoid the blocks:)", 20, 20);
-  }
+    textSize(32);
 
+    text("To start the game stand in front of the screen\n and raise your hands.\nYour objective is to avoid the blocks :)", 300, 400);
+
+    text("RUN RUN RUN!", 400, 150, 50);
+  }
   saveLastSecond();
 }
 
@@ -121,16 +162,38 @@ void checkUserMovement() {
   PVector jointPos = new PVector();
   PVector headPos2D = new PVector();
 
-  int[] users = context.getUsers();
-  for (int i = 0; i < users.length; i++) {
-    if (context.isTrackingSkeleton(users[i])) {
-      // get torso position
-      context.getJointPositionSkeleton(users[i], SimpleOpenNI.SKEL_TORSO, jointPos);
-      context.convertRealWorldToProjective(jointPos, headPos2D);
+  if (playerId != null && context.isTrackingSkeleton(playerId)) {
+    // get torso position
+    context.getJointPositionSkeleton(playerId, SimpleOpenNI.SKEL_TORSO, jointPos);
+    context.convertRealWorldToProjective(jointPos, headPos2D);
 
-      // Make block move according to head movement
-      userBlock.display((int) jointPos.x + 500);
-      //println("Head Position: "+jointPos+" converted Head Position: "+headPos2D);
+    // Make block move according to head movement
+    userBlock.display((int) jointPos.x + 500);
+    //println("Head Position: "+jointPos+" converted Head Position: "+headPos2D);
+  }
+}
+
+void checkUserRestartPosition() {
+  if (gameEnd && playerId != null) {
+
+    PVector handLeftPos = new PVector();
+    PVector handRightPos = new PVector();
+    float distanceHands = 0;
+
+    int[] users = context.getUsers();
+    int i = 0;
+
+
+    if (context.isTrackingSkeleton(playerId)) {
+      // get left and right hand position
+      context.getJointPositionSkeleton(playerId, SimpleOpenNI.SKEL_LEFT_HAND, handLeftPos);
+      context.getJointPositionSkeleton(playerId, SimpleOpenNI.SKEL_RIGHT_HAND, handRightPos);
+
+      distanceHands = handRightPos.x - handLeftPos.x;
+
+      if (distanceHands > 1200) {
+        endGame();
+      }
     }
   }
 }
@@ -158,12 +221,22 @@ boolean checkCrash() {
   }
 
   for (int i = 0; i<blocks.length; i++) {
-    if ( userBlock.x > (blocks[i].x - 50) && userBlock.x < (blocks[i].x +50)) {
-      if ( userBlock.y > (blocks[i].y - 50) && userBlock.y < (blocks[i].y +50)) {
+    if ( userBlock.x > (blocks[i].x - 75) && userBlock.x < (blocks[i].x +75)) {
+      if ( userBlock.y > (blocks[i].y - 75) && userBlock.y < (blocks[i].y +75)) {
         if (lastCrashedBlock != i) {
-          crashImageCounter = 0;
+
           lastCrashedBlock = i;
-          return true;
+          blocks[i].randomNewY();
+          if (blocks[i].lifeBlock) {
+            bar.addLife();
+            blocks[i].lifeBlock = false;
+            return false;
+          }
+          else {
+            crashImageCounter = 0;
+            return true;
+
+          }
         }
       }
     }
@@ -172,8 +245,14 @@ boolean checkCrash() {
 }
 
 void endGame() {
-  gameEnd = true;
-  timer.stop();
+  if (gameEnd == false) {
+    gameEnd = true;
+    timer.stop();
+  } else {
+    gameEnd = false;
+    bar.restartLifeCounter();
+    timer.start();
+  }
 }
 
 void pauseGame() {
@@ -195,10 +274,10 @@ void onNewUser(SimpleOpenNI curContext, int userId)
 {
   println("New user detected - userId: " + userId);
   curContext.startTrackingSkeleton(userId);
-  if (gamePaused && playerId == null) {
+  if (gamePaused || playerId == null) {
     playerId = userId;
+    startGame();
   }
-  startGame();
 }
 
 void onLostUser(int userId) {
@@ -212,4 +291,5 @@ void onLostUser(SimpleOpenNI curContext, int userId)
     playerId = null;
     pauseGame();
   }
+
 }

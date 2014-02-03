@@ -1,12 +1,15 @@
-
+static int lifeBlockCounter = 0;
 
 class Block {
   //Data
-int y;
-int x;
-Timer timer;
-boolean init;
-int lastSecond;
+  int y;
+  int x;
+  Timer timer;
+  boolean init;
+  int lastSecond;
+  PImage heart;
+  boolean lifeBlock = false;
+
   //CONSTRUCTOR
   Block() {
   }
@@ -15,6 +18,9 @@ int lastSecond;
     randomNewLine();
     this.timer = timer;
     init = true;
+
+    heart = loadImage("full_heart.png");
+    heart.resize(100, 100);
   }
 
   void randomNewY(){
@@ -77,18 +83,35 @@ int lastSecond;
     //loca:1 2 3 4 5 6 7 8 the number of runway
     pushStyle();
     pushMatrix();
-    fill(#E81515);
+    fill(#0000FF);
 
     translate(x, y);
     box(100);
+    if (lifeBlock == true) {
+      beginShape();
+      texture(heart);
+      vertex(50, 50, 50, 100, 97);
+      vertex(-50, 50, 50, 0, 97);
+      vertex(-50, -50, 50, 0, 0);
+      vertex(50, -50, 50, 100, 0);
+      endShape();
+      noFill();
+      noStroke();
+      box(100);
+    }
     popMatrix();
 
     if (lastSecond != timer.second()) {
       y += ((timer.minute()*60)+timer.second())+10;
     }
 
-    //if(y_Block1>0)  y_Block1=-2400;
-    if(y>0) {
+    if (y>0) {
+      lifeBlock = false;
+      lifeBlockCounter++;
+
+      //create every tenth block a lifeBlock
+      if ((lifeBlockCounter % 10) == 0) lifeBlock = true;
+
       randomNewLine();
       y = -2400;
     }

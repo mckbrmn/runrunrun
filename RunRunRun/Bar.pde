@@ -18,6 +18,7 @@ class Bar { //display the data bars
     pushStyle();
     rotateX(radians(-60.0));
 
+    textSize(16);
     text("Life:", 50, -535);
     pushStyle();
 
@@ -51,5 +52,14 @@ class Bar { //display the data bars
       lifeCounter--;
       return true;
     }
+  }
+
+  void addLife(){
+    if (lifeCounter < 3)
+      lifeCounter++;
+  }
+
+  void restartLifeCounter(){
+   lifeCounter = 3;
   }
 }
