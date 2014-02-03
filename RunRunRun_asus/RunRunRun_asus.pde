@@ -17,9 +17,12 @@ Integer playerId = null;
 PImage crashImage;
 boolean gamePaused = true;
 boolean gameEnd = false;
+boolean adviseMode = false;
+boolean adviseTimerActive = false;
 int firstCrashesCounter = 0;
 PFont f;
 int crashImageCounter = -1;
+ Timer adviseTimer;
 
 // main program
 void setup() {
@@ -107,7 +110,28 @@ void draw() {
     text("GAME OVER\nHIGHSCORE: " +timer.hour()+":"+timer.minute()+":"+timer.second()+"\n \n to restart the Game, \nstretch your hands.", 300, 200);  
 
     checkUserRestartPosition();
-  }
+  }else if (adviseMode){
+        
+    
+        if(adviseTimerActive){
+        adviseTimer = new Timer();
+        adviseTimer.start();
+        }
+        adviseTimerActive = false;
+        
+        pushStyle(); 
+        fill(#ffffff);
+        translate(0,0,100);
+        
+        rect(400,100, 400,300);
+        fill(0);
+        textSize(20);
+        text("Do not crash the\nblue blocks \ntry to avoid! :)\n Game resumes in: "+(5-adviseTimer.second()),450,150);  
+        popStyle();
+       
+       if(adviseTimer.second() == 5)
+       adviseMode = false;
+}
   else if (!gamePaused) {
 
 
@@ -126,14 +150,20 @@ void draw() {
     checkUserMovement();
 
     if (checkCrash()) {
+      if(firstCrashesCounter < 2){
+        adviseMode = true;
+        adviseTimerActive = true;
+        firstCrashesCounter++;
+      }else{
       //check if the player lost all his life's
       if (bar.removeLife()) {
         endGame();
       }
+      }
     }
 
     // Creates the crash image, if the block is not an life block or the player crashed 2 times a normal block
-    if (crashImageCounter >= 0 && crashImageCounter < 10 && firstCrashesCounter < 2) {
+    if (crashImageCounter >= 0 && crashImageCounter < 10) {
       translate(0, 0, 100);
       image(crashImage, userBlock.x-100, userBlock.y-100, 200, 200);
       crashImageCounter++;
@@ -229,6 +259,8 @@ void keyPressed() {
 }
 
 boolean checkCrash() {
+
+  
   if (lastSecond != timer.second()) {
     lastCrashedBlock = -3;
   }
