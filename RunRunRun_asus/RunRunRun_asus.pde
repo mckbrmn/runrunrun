@@ -17,6 +17,7 @@ Integer playerId = null;
 PImage crashImage;
 boolean gamePaused = true;
 boolean gameEnd = false;
+int firstCrashesCounter = 0;
 PFont f;
 int crashImageCounter = -1;
 
@@ -27,7 +28,7 @@ void setup() {
   frameRate(15);
   colorMode(HSB);
 
-  f = createFont("Arial", 56, true);
+  f = createFont("Arial", 32, true);
 
   lastCrashedBlock = -2;
 
@@ -67,66 +68,99 @@ UserBlock userBlock;
 
 
 void draw() {
+  /*
   new Panel().display();
+   
+   new Tree().display();
+   
+   if (!gamePaused) {
+   for (int i = 0; i< blocks.length; i++) {
+   blocks[i].display(panelNumber);
+   }
+   }
+   
+   bar.display();
+   */
 
-  new Tree().display();
-
-  if (!gamePaused) {
-    for (int i = 0; i< blocks.length; i++) {
-      blocks[i].display(panelNumber);
-    }
-  }
-
-  bar.display();
 
   // update the camera
   context.update();
-  if (gameEnd){
-     pushStyle();
+  if (gameEnd) {
+
+    pushStyle();
     pushMatrix();
+    background(0);
     fill(#000000);
 
 
 
-    textSize(100);
-    translate(0, 0, 100);
+    // translate(0, 0, 100);
     //rotate(10);
-    textFont(f, 78);
+    //textFont(f, 32);
 
-    text("Sorry you have lost all your life's.", 200, -400, 0);
- //  println(height);
+
+    //  println(height);
     popMatrix();
     popStyle();   
-  }else if (!gamePaused) {
-   
+    textSize(32);
+    text("Time: "+timer.hour()+":"+timer.minute()+":"+timer.second(), 850, -535);
+    text("GAME OVER\nHIGHSCORE: " +timer.hour()+":"+timer.minute()+":"+timer.second()+"\n \n to restart the Game, \nstretch your hands.", 300, 200);  
+
+    checkUserRestartPosition();
+  }
+  else if (!gamePaused) {
+
+
+    new Panel().display();
+
+    new Tree().display();
+
+
+    for (int i = 0; i< blocks.length; i++) {
+      blocks[i].display(panelNumber);
+    }
+
+
+    bar.display();
+
     checkUserMovement();
 
     if (checkCrash()) {
-      translate(0, 0, 100);
-      image(crashImage, userBlock.x-100, userBlock.y-100, 200, 200);
       //check if the player lost all his life's
-      if(bar.removeLife()){
-       endGame(); 
+      if (bar.removeLife()) {
+        endGame();
       }
     }
-  }else {
+
+    // Creates the crash image, if the block is not an life block or the player crashed 2 times a normal block
+    if (crashImageCounter >= 0 && crashImageCounter < 10 && firstCrashesCounter < 2) {
+      translate(0, 0, 100);
+      image(crashImage, userBlock.x-100, userBlock.y-100, 200, 200);
+      crashImageCounter++;
+    }
+  }
+  else {
+
     pushStyle();
     pushMatrix();
     fill(#ffffff);
 
 
 
-//    textSize(100);
-//    translate(0, 0, 100);
+    //    textSize(100);
+    //    translate(0, 0, 100);
     //rotate(10);
-    textFont(f, 56);
- //  println(height);
+    //textFont(f, 32);
+    //  println(height);
     popMatrix();
     popStyle();
-    text("To start the game stay in front \n and raise your hands. Target is to avoid the blocks:)", 20, 20);
+    textSize(32);
+     
+    text("To start the game stay in front \n and raise your hands.\n Target is to avoid the blocks :)", 300, 400);
    
-  }
-  
+    text("RUN RUN RUN!", 400, 150, 50);  
+}
+
   saveLastSecond();
 }
 
@@ -135,18 +169,45 @@ void checkUserMovement() {
   PVector headPos2D = new PVector();
 
   int[] users = context.getUsers();
-//  for (int i = 0; i < users.length; i++) {
+  //  for (int i = 0; i < users.length; i++) {
   int i = 0;
-    if (context.isTrackingSkeleton(playerId)) {
-      // get head position
-      context.getJointPositionSkeleton(users[i], SimpleOpenNI.SKEL_HEAD, jointPos);
-      context.convertRealWorldToProjective(jointPos, headPos2D);
 
-      // Make block move according to head movement
-      userBlock.display((int) jointPos.x + 500);
-      //      println("Head Position: "+jointPos+" converted Head Position: "+headPos2D);
+
+  if (context.isTrackingSkeleton(playerId) && playerId != null) {
+    // get head position
+    context.getJointPositionSkeleton(playerId, SimpleOpenNI.SKEL_HEAD, jointPos);
+    context.convertRealWorldToProjective(jointPos, headPos2D);
+
+    // Make block move according to head movement
+    userBlock.display((int) jointPos.x + 500);
+    //      println("Head Position: "+jointPos+" converted Head Position: "+headPos2D);
+  }
+  //  }
+}
+
+void checkUserRestartPosition() {
+  if (gameEnd && playerId != null) {
+
+    PVector handLeftPos = new PVector();
+    PVector handRightPos = new PVector();
+    float distanceHands = 0;
+
+    int[] users = context.getUsers();
+    int i = 0;
+
+
+    if (context.isTrackingSkeleton(playerId)) {
+      // get left and right hand position
+      context.getJointPositionSkeleton(playerId, SimpleOpenNI.SKEL_LEFT_HAND, handLeftPos);
+      context.getJointPositionSkeleton(playerId, SimpleOpenNI.SKEL_RIGHT_HAND, handRightPos);
+
+      distanceHands = handRightPos.x - handLeftPos.x;
+
+      if (distanceHands > 1200) {
+        endGame();
+      }
     }
-//  }
+  }
 }
 
 void saveLastSecond() {
@@ -154,6 +215,7 @@ void saveLastSecond() {
     lastSecond = timer.second();
   }
 }
+
 
 void keyPressed() {
   switch(key) {
@@ -172,12 +234,22 @@ boolean checkCrash() {
   }
 
   for (int i = 0; i<blocks.length; i++) {
-    if ( userBlock.x > (blocks[i].x - 50) && userBlock.x < (blocks[i].x +50)) {
-      if ( userBlock.y > (blocks[i].y - 50) && userBlock.y < (blocks[i].y +50)) {
+    if ( userBlock.x > (blocks[i].x - 75) && userBlock.x < (blocks[i].x +75)) {
+      if ( userBlock.y > (blocks[i].y - 75) && userBlock.y < (blocks[i].y +75)) {
         if (lastCrashedBlock != i) {
-          crashImageCounter = 0;
+
           lastCrashedBlock = i;
-          return true;
+          blocks[i].randomNewY();
+          if (blocks[i].lifeBlock) {
+            bar.addLife();
+            blocks[i].lifeBlock = false;
+            return false;
+          }
+          else {
+            crashImageCounter = 0;
+            return true;
+           
+          }
         }
       }
     }
@@ -185,9 +257,16 @@ boolean checkCrash() {
   return false;
 }
 
-void endGame(){
-  gameEnd = true;
-  timer.stop();
+void endGame() {
+  if (gameEnd == false) {
+    gameEnd = true;
+    timer.stop();
+  }
+  else {
+    gameEnd = false;
+    bar.restartLifeCounter();
+    timer.start();
+  }
 }
 
 void pauseGame() {
@@ -206,18 +285,39 @@ void onNewUser( int userId)
 {
   println("New user detected - userId: " + userId);
   context.startTrackingSkeleton(userId);
+
   if (gamePaused && playerId == null) {
     playerId = userId;
+    startGame();
   }
-  startGame();
+
 }
 
-void onLostUser( int userId)
+
+void onLostUser(int userId)
 {
   println("Lost user - userId: " + userId);
   if (!gamePaused && userId == playerId) {
     playerId = null;
+    gameEnd = false;
     pauseGame();
   }
 }
-
+/*
+// when calibration begins
+ void onStartCalibration(int userId)
+ {
+ println("start cali");
+ }
+ 
+ // when calibaration ends - successfully or unsucessfully 
+ void onEndCalibration(int userId, boolean successfull)
+ {
+ println("end cali with userID: "+userId);
+ 
+ if (gamePaused && playerId != null) {
+ playerId = userId;
+ }
+ startGame();
+ }
+ */
