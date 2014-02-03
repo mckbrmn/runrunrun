@@ -4,6 +4,7 @@ class UserBlock {
   //Data
   int x;
   int y;
+  PImage img = loadImage("spaceship.png");
   //CONSTRUCTOR
   UserBlock() {
   }
@@ -33,15 +34,25 @@ class UserBlock {
     pushStyle();
     pushMatrix();
 
-    if (x_loc > 75) x_loc = 75;
-    if (x_loc < 1125) x_loc = 1125;
+    if (x_loc < 75) x_loc = 75;
+    if (x_loc > 1125) x_loc = 1125;
     x = x_loc;
 
     translate(x, y);
-    fill(#528618);
+    //rotateX(radians(60.0));
+    beginShape();
+    texture(img);
+    vertex(50, 50, 50, 100, 97);
+    vertex(-50, 50, 50, 0, 97);
+    vertex(-50, -50, 50, 0, 0);
+    vertex(50, -50, 50, 100, 0);
+    endShape();
+    noFill();
+    //stroke(0, 255, 0);
+    noStroke();
     box(100);
-    popMatrix();
 
+    popMatrix();
 
     popStyle();
   }

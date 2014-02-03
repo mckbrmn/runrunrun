@@ -56,7 +56,7 @@ UserBlock userBlock;
 void draw() {
   new Panel().display();
 
-  new Tree().display();
+  new Fence().display();
 
   if (!gamePaused) {
     for(int i = 0; i< blocks.length; i++){
