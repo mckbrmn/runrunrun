@@ -33,7 +33,8 @@ class UserBlock {
     pushStyle();
     pushMatrix();
 
-    if(x_loc > 75 && x_loc < 1125)
+    if (x_loc > 75) x_loc = 75;
+    if (x_loc < 1125) x_loc = 1125;
     x = x_loc;
 
     translate(x, y);

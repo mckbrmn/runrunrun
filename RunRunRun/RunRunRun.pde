@@ -92,7 +92,7 @@ void checkUserMovement() {
   for (int i = 0; i < users.length; i++) {
     if (context.isTrackingSkeleton(users[i])) {
       // get head position
-      context.getJointPositionSkeleton(users[i], SimpleOpenNI.SKEL_HEAD, jointPos);
+      context.getJointPositionSkeleton(users[i], SimpleOpenNI.SKEL_TORSO, jointPos);
       context.convertRealWorldToProjective(jointPos, headPos2D);
 
       // Make block move according to head movement
